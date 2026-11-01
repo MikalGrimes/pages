@@ -84,6 +84,28 @@
     background: var(--limestone); color: #7a7f84; cursor: not-allowed; pointer-events: none;
   }
   .note { font-size: 13px; color: #5a6670; margin-top: 18px; }
+
+  html { -webkit-text-size-adjust: 100%; }
+  img, table, select { max-width: 100%; }
+
+  /* Phones: tighter table so all four columns fit without sideways scrolling */
+  @media (max-width: 520px) {
+    .wrap { padding-left: 12px; padding-right: 12px; }
+    .site-header h1 { font-size: 24px; }
+    h2 { font-size: 19px; }
+    .controls { padding: 12px; }
+    .quick-links { margin-left: 0; width: 100%; }
+    table { table-layout: fixed; }
+    th, td { padding: 8px 4px; }
+    thead th { font-size: 12px; letter-spacing: 0; text-align: center; }
+    thead th:first-child { text-align: left; }
+    th:nth-child(1), td:nth-child(1) { width: 29%; }
+    th:nth-child(n+2), td:nth-child(n+2) { width: 23.667%; text-align: center; }
+    td.date { white-space: normal; font-size: 15px; }
+    tr.today td.date::after { content: "today"; display: block; font-size: 12px; }
+    a.btn { min-width: 0; width: 100%; padding: 8px 0; }
+    a.btn.cal { padding: 6px 0; }
+  }
 </style>
 </head>
 <body>
