@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Court Reservation Links | UT RecSports</title>
+<link rel="icon" href="https://www.utrecsports.org/favicon.ico">
+<link rel="shortcut icon" href="https://www.utrecsports.org/favicon.ico">
+<style>
+  :root {
+    --burnt-orange: #bf5700;
+    --burnt-orange-dark: #9c4700;
+    --charcoal: #333f48;
+    --limestone: #d6d2c4;
+    --limestone-light: #f4f2ec;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--charcoal);
+    background: #fff;
+    line-height: 1.45;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+
+  /* Header, modeled on the utrecsports.org masthead: white bar, burnt orange rule */
+  .site-header { background: #fff; border-bottom: 6px solid var(--burnt-orange); }
+  .site-header .wrap { padding-top: 14px; padding-bottom: 12px; }
+  .dept { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--burnt-orange); font-weight: 700; }
+  .site-header h1 { margin: 2px 0 0; font-size: 28px; font-weight: 700; color: var(--charcoal); }
+
+  main { padding-top: 24px; padding-bottom: 40px; }
+  h2 { margin: 0 0 16px; font-size: 22px; color: var(--burnt-orange); }
+
+  .controls {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+    padding: 14px 16px; background: var(--limestone-light);
+    border-left: 4px solid var(--burnt-orange); margin-bottom: 14px;
+  }
+  .controls label { font-weight: 700; }
+  .controls label.check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .controls label.check input { width: 16px; height: 16px; accent-color: var(--burnt-orange); }
+  select, button {
+    font: inherit; padding: 6px 10px; border: 1px solid var(--charcoal);
+    border-radius: 3px; background: #fff; color: var(--charcoal);
+  }
+  button { cursor: pointer; }
+  button:hover { background: var(--limestone-light); }
+  button.on { border-color: var(--burnt-orange); color: var(--burnt-orange); }
+
+  .quick-links { margin-left: auto; display: inline-flex; gap: 18px; }
+  a.current-link {
+    font-weight: 700; color: var(--burnt-orange);
+    text-decoration: none; border-bottom: 2px solid var(--burnt-orange);
+  }
+  a.current-link:hover, a.current-link:focus { color: var(--burnt-orange-dark); border-bottom-color: var(--burnt-orange-dark); }
+
+  .clock { font-size: 14px; margin-bottom: 8px; color: #5a6670; }
+  .sim { display: none; background: #fff3cd; border: 1px solid #e0c36a; padding: 6px 10px; margin-bottom: 8px; font-size: 14px; }
+  .status { font-size: 15px; padding: 10px 14px; background: #fff; border: 1px solid var(--limestone); margin-bottom: 14px; min-height: 3em; }
+  .status strong { color: var(--burnt-orange); }
+  .banner {
+    display: none; padding: 12px 14px; margin-bottom: 14px; font-weight: 700;
+    background: var(--burnt-orange); color: #fff; border-radius: 3px;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--limestone); }
+  thead th { background: var(--charcoal); color: #fff; font-size: 14px; text-transform: uppercase; letter-spacing: .05em; }
+  tbody tr:nth-child(even) { background: var(--limestone-light); }
+  td.date { font-weight: 700; white-space: nowrap; }
+  tr.today td.date::after { content: " (today)"; font-weight: 400; color: #5a6670; }
+
+  a.btn {
+    display: inline-block; min-width: 72px; padding: 7px 16px; text-align: center;
+    border-radius: 3px; background: var(--burnt-orange); color: #fff;
+    font-weight: 700; text-decoration: none;
+  }
+  a.btn.cal { background: #fff; color: var(--burnt-orange); border: 2px solid var(--burnt-orange); padding: 5px 14px; }
+  a.btn.cal:hover, a.btn.cal:focus { background: var(--limestone-light); }
+  a.btn:hover, a.btn:focus { background: var(--burnt-orange-dark); }
+  a.btn.disabled {
+    background: var(--limestone); color: #7a7f84; cursor: not-allowed; pointer-events: none;
+  }
+  .note { font-size: 13px; color: #5a6670; margin-top: 18px; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="dept">Division of Student Affairs</div>
+    <h1>Recreational Sports</h1>
+  </div>
+</header>
+
+<main class="wrap">
+  <h2>Court Reservation Links</h2>
+
+  <div class="controls">
+    <label for="resTime">Reservation time</label>
+    <select id="resTime"></select>
+    <label class="check"><input type="checkbox" id="soundToggle"> Sound &amp; notifications</label>
+    <label for="tzOffset" title="Test only: pretends your device is in this time zone. Links and alerts are always computed in Austin time, so changing this should not change them.">Your UTC offset (test)</label>
+    <select id="tzOffset" title="Test only: pretends your device is in this time zone. Links and alerts are always computed in Austin time, so changing this should not change them."></select>
+    <span class="quick-links">
+      <a class="current-link" href="https://apps.rs.utexas.edu/app/myrecsports/scan.php" target="_blank" rel="noopener">Scan</a>
+      <a class="current-link" href="https://apps.rs.utexas.edu/app/myrecsports/myreservations.php" target="_blank" rel="noopener">Current Reservations</a>
+    </span>
+  </div>
+
+  <div class="sim" id="sim"></div>
+  <div class="clock" id="clock"></div>
+  <div class="banner" id="banner" role="alert"></div>
+  <div class="status" id="status" aria-live="polite"></div>
+
+  <table>
+    <thead>
+      <tr><th>Date</th><th>GRE</th><th>RSC</th><th>Calendar</th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <p class="note">
+    All dates and times are calculated in Austin time (America/Chicago, CST/CDT), regardless of your device's time zone.
+    Links open 10 minutes before a slot becomes reservable (7 days ahead, to the second). Dates already past the 7-day window are always enabled.
+  </p>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- Configuration ----------
+  var TZ = 'America/Chicago';
+  var BASE_URL = 'https://apps.rs.utexas.edu/app/myrecsports/reserve_courts.php';
+  var FACILITIES = [ { label: 'GRE', id: 40 }, { label: 'RSC', id: 55 } ];
+  var DAYS_AHEAD = 7;                       // rows: today .. today + 7 (inclusive)
+  var ENABLE_LEAD_MS = 10 * 60 * 1000;      // links enable 10 min before the window opens
+  var ALERT_LEAD_MS  = 2 * 60 * 1000;       // alert 2 min before the window opens
+  var HOURS = [16, 17, 18, 19];             // 4:00 pm .. 7:00 pm
+  var DEFAULT_HOUR = 17;                    // 5:00 pm
+  var DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  // ==== time helpers (pure; no DOM) ====
+  var partsFmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: TZ, hourCycle: 'h23',
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric'
+  });
+
+  // Wall-clock parts in Austin for a UTC millisecond timestamp.
+  function austinParts(ms) {
+    var o = {};
+    partsFmt.formatToParts(new Date(ms)).forEach(function (p) {
+      if (p.type !== 'literal') o[p.type] = parseInt(p.value, 10);
+    });
+    if (o.hour === 24) o.hour = 0;
+    return o;
+  }
+
+  // Austin's UTC offset (ms) at a given instant.
+  function tzOffsetMs(ms) {
+    var p = austinParts(ms);
+    var asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+    return asUtc - Math.floor(ms / 1000) * 1000;
+  }
+
+  // Convert an Austin wall-clock time to a UTC millisecond timestamp.
+  function austinWallToUtc(y, m, d, h, mi, s) {
+    var wall = Date.UTC(y, m - 1, d, h, mi, s || 0);
+    var guess = wall - tzOffsetMs(wall);
+    guess = wall - tzOffsetMs(guess);   // second pass handles DST boundaries
+    return guess;
+  }
+
+  // Calendar-day arithmetic (no time zone involved).
+  function addDays(y, m, d, n) {
+    var t = new Date(Date.UTC(y, m - 1, d + n));
+    return { year: t.getUTCFullYear(), month: t.getUTCMonth() + 1, day: t.getUTCDate(), dow: t.getUTCDay() };
+  }
+
+  // Instant (UTC ms) at which a slot on `day` at `hour` (Austin) becomes reservable: 7 days earlier, same wall time.
+  function openAtFor(day, hour) {
+    var e = addDays(day.year, day.month, day.day, -7);
+    return austinWallToUtc(e.year, e.month, e.day, hour, 0, 0);
+  }
+  // ==== end time helpers ====
+
+  // ---------- Formatting ----------
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  function hourLabel(h) {
+    var h12 = h % 12 === 0 ? 12 : h % 12;
+    return h12 + ':00 ' + (h >= 12 ? 'pm' : 'am');
+  }
+
+  function rowLabel(day) { return DOW[day.dow] + ' ' + pad(day.month) + '/' + pad(day.day); }
+
+  function encodeDateParam(day) {
+    var s = pad(day.month) + '/' + pad(day.day) + '/' + day.year + ' (' + DOW[day.dow] + ')';
+    return encodeURIComponent(s).replace(/%20/g, '+').replace(/\(/g, '%28').replace(/\)/g, '%29');
+  }
+
+  function linkFor(day, facilityId) {
+    return BASE_URL + '?date=' + encodeDateParam(day) + '&facility_id=' + facilityId;
+  }
+
+  // Google Calendar "create event" link. Start/end are Austin wall-clock times, and ctz tells
+  // Google to interpret them in America/Chicago whatever the viewer's own calendar time zone is.
+  // Event details can be supplied in this page's own query string, e.g.
+  //   court-links.html?title=Squash&location=Court%203&guests=a@example.com,b@example.com
+  // Anything omitted falls back to the defaults below (no guests by default).
+  var qs = new URLSearchParams(location.search);
+  var EVENT_TITLE = qs.get('title') || 'Squash';
+  var EVENT_LOCATION = qs.get('location') || 'Court ?';
+  var EVENT_GUESTS = (qs.get('guests') || '').split(',')
+    .map(function (g) { return g.trim(); })
+    .filter(function (g) { return g; });
+  var EVENT_DURATION_HOURS = 1;
+  function calStamp(day, hour) {
+    return day.year + pad(day.month) + pad(day.day) + 'T' + pad(hour) + '0000';
+  }
+  function calendarLink(day, hour) {
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+      '&text=' + encodeURIComponent(EVENT_TITLE) +
+      '&dates=' + calStamp(day, hour) + '/' + calStamp(day, hour + EVENT_DURATION_HOURS) +
+      '&ctz=' + encodeURIComponent(TZ) +
+      '&location=' + encodeURIComponent(EVENT_LOCATION) +
+      (EVENT_GUESTS.length ? '&add=' + encodeURIComponent(EVENT_GUESTS.join(',')) : '');
+  }
+
+  var tzNameFmt = new Intl.DateTimeFormat('en-US', { timeZone: TZ, timeZoneName: 'short' });
+  function tzAbbrev(ms) {
+    var parts = tzNameFmt.formatToParts(new Date(ms));
+    for (var i = 0; i < parts.length; i++) if (parts[i].type === 'timeZoneName') return parts[i].value;
+    return 'CT';
+  }
+
+  // e.g. "Thu 10/15/2026 5:00:00 PM CDT"
+  function formatAustin(ms) {
+    var p = austinParts(ms);
+    var dow = new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay();
+    var h12 = p.hour % 12 === 0 ? 12 : p.hour % 12;
+    return DOW[dow] + ' ' + pad(p.month) + '/' + pad(p.day) + '/' + p.year + ' ' +
+           h12 + ':' + pad(p.minute) + ':' + pad(p.second) + ' ' + (p.hour >= 12 ? 'PM' : 'AM') + ' ' + tzAbbrev(ms);
+  }
+
+  function formatDuration(ms) {
+    var s = Math.max(0, Math.ceil(ms / 1000));
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    return (h > 0 ? h + ':' + pad(m) : m) + ':' + pad(sec);
+  }
+
+  // ---------- Clock (supports ?now=... for testing) ----------
+  // Example: court-links.html?now=2026-10-15T16:49:30-05:00 simulates that moment (clock keeps ticking).
+  var clockOffset = 0;
+  (function () {
+    var m = /[?&]now=([^&]+)/.exec(location.search);
+    if (m) {
+      var t = Date.parse(decodeURIComponent(m[1]));
+      if (!isNaN(t)) {
+        clockOffset = t - Date.now();
+        var sim = document.getElementById('sim');
+        sim.style.display = 'block';
+        sim.textContent = 'Simulated clock in use (?now=' + decodeURIComponent(m[1]) + ').';
+      }
+    }
+  })();
+  function nowMs() { return Date.now() + clockOffset; }
+
+  // ---------- DOM ----------
+  var select = document.getElementById('resTime');
+  var rowsEl = document.getElementById('rows');
+  var clockEl = document.getElementById('clock');
+  var statusEl = document.getElementById('status');
+  var bannerEl = document.getElementById('banner');
+  var soundToggle = document.getElementById('soundToggle');
+  var tzSelect = document.getElementById('tzOffset');
+
+  HOURS.forEach(function (h) {
+    var o = document.createElement('option');
+    o.value = h;
+    o.textContent = hourLabel(h);
+    if (h === DEFAULT_HOUR) o.selected = true;
+    select.appendChild(o);
+  });
+
+  // ---------- Simulated device time zone (test only) ----------
+  // Offsets in minutes east of UTC. Defaults to this device's real offset (e.g. -300 for Austin in CDT).
+  // Links, enabling and alerts are always computed in Austin time, so changing this only changes the
+  // "Your local time" readout; it exists so you can confirm nothing else moves.
+  var OFFSETS = [];
+  (function () {
+    var o;
+    for (o = -12; o <= 14; o++) OFFSETS.push(o * 60);
+    [-570, -210, 210, 270, 330, 345, 390, 525, 570, 630, 765].forEach(function (m) { OFFSETS.push(m); });
+    var real = -new Date(nowMs()).getTimezoneOffset();
+    if (OFFSETS.indexOf(real) === -1) OFFSETS.push(real);
+    OFFSETS.sort(function (a, b) { return a - b; });
+    OFFSETS.forEach(function (m) {
+      var opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = offsetLabel(m);
+      if (m === real) opt.selected = true;
+      tzSelect.appendChild(opt);
+    });
+  })();
+
+  function offsetLabel(mins) {
+    var sign = mins < 0 ? '-' : '+';
+    var a = Math.abs(mins);
+    var h = Math.floor(a / 60), m = a % 60;
+    return 'UTC' + sign + h + (m ? ':' + pad(m) : '');
+  }
+
+  // Wall-clock text for an instant as seen at a fixed UTC offset.
+  function formatAtOffset(ms, mins) {
+    var t = new Date(ms + mins * 60000);
+    var h = t.getUTCHours(), h12 = h % 12 === 0 ? 12 : h % 12;
+    return DOW[t.getUTCDay()] + ' ' + pad(t.getUTCMonth() + 1) + '/' + pad(t.getUTCDate()) + '/' + t.getUTCFullYear() + ' ' +
+           h12 + ':' + pad(t.getUTCMinutes()) + ':' + pad(t.getUTCSeconds()) + ' ' + (h >= 12 ? 'PM' : 'AM') + ' ' + offsetLabel(mins);
+  }
+
+  var rows = [];          // [{ day, links: [a, ...] }]
+  var builtKey = null;    // Austin date the table was built for
+
+  function buildTable(today) {
+    rowsEl.innerHTML = '';
+    rows = [];
+    for (var i = 0; i <= DAYS_AHEAD; i++) {
+      var day = addDays(today.year, today.month, today.day, i);
+      var tr = document.createElement('tr');
+      if (i === 0) tr.className = 'today';
+
+      var th = document.createElement('td');
+      th.className = 'date';
+      th.textContent = rowLabel(day);
+      tr.appendChild(th);
+
+      var links = [];
+      FACILITIES.forEach(function (f) {
+        var td = document.createElement('td');
+        var a = document.createElement('a');
+        a.className = 'btn disabled';
+        a.textContent = f.label;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.setAttribute('data-href', linkFor(day, f.id));
+        a.setAttribute('aria-disabled', 'true');
+        a.tabIndex = -1;
+        td.appendChild(a);
+        tr.appendChild(td);
+        links.push(a);
+      });
+
+      var calTd = document.createElement('td');
+      var calA = document.createElement('a');
+      calA.className = 'btn cal';
+      calA.textContent = 'Add';
+      calA.target = '_blank';
+      calA.rel = 'noopener';
+      calTd.appendChild(calA);
+      tr.appendChild(calTd);
+
+      rowsEl.appendChild(tr);
+      rows.push({ day: day, links: links, cal: calA });
+    }
+    builtKey = today.year + '-' + today.month + '-' + today.day;
+  }
+
+  function setEnabled(a, enabled) {
+    var isEnabled = !a.classList.contains('disabled');
+    if (enabled === isEnabled) return;
+    if (enabled) {
+      a.href = a.getAttribute('data-href');
+      a.classList.remove('disabled');
+      a.removeAttribute('aria-disabled');
+      a.tabIndex = 0;
+    } else {
+      a.removeAttribute('href');
+      a.classList.add('disabled');
+      a.setAttribute('aria-disabled', 'true');
+      a.tabIndex = -1;
+    }
+  }
+
+  // ---------- Alerts ----------
+  var audioCtx = null;
+  var alertedFor = null;
+  var originalTitle = document.title;
+
+  // Off by default; tick the box to turn on, untick to turn off again.
+  var soundOn = false;
+  soundToggle.checked = false;
+  soundToggle.addEventListener('change', function () {
+    soundOn = soundToggle.checked;
+    if (!soundOn) return;
+    try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); } catch (e) {}
+    try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
+    beep(); // confirms sound works
+  });
+
+  function beep() {
+    if (!soundOn || !audioCtx) return;
+    try {
+      [0, 0.35, 0.7].forEach(function (delay) {
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.value = 0.2;
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + delay);
+        osc.stop(audioCtx.currentTime + delay + 0.2);
+      });
+    } catch (e) {}
+  }
+
+  function fireAlert(openAt, rowText, hour) {
+    var msg = 'Court reservations for ' + rowText + ' at ' + hourLabel(hour) + ' open in 2 minutes (' + formatAustin(openAt) + ').';
+    bannerEl.textContent = msg;
+    bannerEl.style.display = 'block';
+    document.title = '\u23F0 2 min! ' + originalTitle;
+    beep();
+    try {
+      if (soundOn && 'Notification' in window && Notification.permission === 'granted') new Notification('Court reservations open soon', { body: msg });
+    } catch (e) {}
+    setTimeout(function () { window.alert(msg); }, 60);
+  }
+
+  // ---------- Main tick ----------
+  function tick() {
+    var now = nowMs();
+    var t = austinParts(now);
+    var key = t.year + '-' + t.month + '-' + t.day;
+    if (key !== builtKey) buildTable(t);
+
+    var hour = parseInt(select.value, 10);
+    var next = null;
+
+    rows.forEach(function (r) {
+      var openAt = openAtFor(r.day, hour);
+      var enabled = now >= openAt - ENABLE_LEAD_MS;
+      r.links.forEach(function (a) { setEnabled(a, enabled); });
+      r.cal.href = calendarLink(r.day, hour);   // always enabled; follows the selected time
+      if (openAt > now && (next === null || openAt < next.openAt)) next = { openAt: openAt, row: r };
+    });
+
+    var localMins = parseInt(tzSelect.value, 10);
+    clockEl.innerHTML = 'Austin time now: ' + formatAustin(now) + ' (' + offsetLabel(tzOffsetMs(now) / 60000) + ')<br>' +
+                        'Your local time: ' + formatAtOffset(now, localMins);
+
+    if (next) {
+      var toEnable = next.openAt - ENABLE_LEAD_MS - now;
+      var toAlert = next.openAt - ALERT_LEAD_MS - now;
+      var html = 'Next window: <strong>' + rowLabel(next.row.day) + ' at ' + hourLabel(hour) + '</strong> opens ' +
+                 formatAustin(next.openAt) + ' (in ' + formatDuration(next.openAt - now) + ').<br>';
+      html += toEnable > 0
+        ? 'Links enable in <strong>' + formatDuration(toEnable) + '</strong>. '
+        : 'Link for this date is <strong>enabled</strong>. ';
+      html += toAlert > 0
+        ? 'Alert in <strong>' + formatDuration(toAlert) + '</strong>.'
+        : 'Alert sent.';
+      statusEl.innerHTML = html;
+
+      // Fire once per target slot, only while still before it opens.
+      if (now >= next.openAt - ALERT_LEAD_MS && alertedFor !== next.openAt) {
+        alertedFor = next.openAt;
+        fireAlert(next.openAt, rowLabel(next.row.day), hour);
+      }
+    } else {
+      statusEl.textContent = 'The ' + hourLabel(hour) + ' booking window is already open for every date listed.';
+      bannerEl.style.display = 'none';
+      document.title = originalTitle;
+    }
+  }
+
+  select.addEventListener('change', function () {
+    bannerEl.style.display = 'none';
+    document.title = originalTitle;
+    tick();
+  });
+
+  // A Web Worker ticker isn't throttled in background tabs the way setInterval is,
+  // so the alert still fires on time if this tab isn't focused.
+  var fallbackStarted = false;
+  function startFallback() {
+    if (fallbackStarted) return;
+    fallbackStarted = true;
+    setInterval(tick, 250);
+  }
+  try {
+    var blob = new Blob(['setInterval(function(){postMessage(1)},250);'], { type: 'text/javascript' });
+    var worker = new Worker(URL.createObjectURL(blob));
+    worker.onmessage = tick;
+    worker.onerror = startFallback;
+  } catch (e) {
+    startFallback();
+  }
+
+  tick();
+})();
+</script>
+</body>
+</html>
