@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hot Tub</title>
+<style>
+:root{
+  --bg:#f3f5f7;--card:#fff;--ink:#14202b;--muted:#6b7a88;--line:#dbe2e8;
+  --accent:#0a7fd1;--accent-ink:#fff;--hot:#e2603a;--ok:#2e9b5a;--bad:#c93a3a;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0e141a;--card:#18212a;--ink:#eaf0f5;--muted:#91a1b0;--line:#2a3743;
+        --accent:#3aa0f0;--accent-ink:#06121c;--hot:#f0794f;--ok:#4cc17d;--bad:#ef6a6a}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;
+  min-height:100vh;display:flex;justify-content:center;padding:16px}
+main{width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px}
+h1{font-size:1.1rem;margin:4px 2px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+#conn{font-size:.8rem;font-weight:500;color:var(--muted);display:flex;align-items:center;gap:6px}
+#conn i{width:9px;height:9px;border-radius:50%;background:var(--bad);display:inline-block}
+#conn.ok i{background:var(--ok)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+#power{width:100%;border:0;border-radius:14px;padding:22px 0;font-size:1.3rem;font-weight:600;cursor:pointer;
+  background:var(--line);color:var(--ink)}
+#power.on{background:var(--hot);color:#fff}
+#power:disabled{opacity:.5;cursor:default}
+.state{margin-top:10px;text-align:center;color:var(--muted);font-size:.9rem;min-height:1.3em}
+.temps{display:flex;justify-content:space-around;text-align:center;margin-bottom:14px}
+.temps div span{display:block;color:var(--muted);font-size:.8rem}
+.temps div b{font-size:2.2rem;font-weight:600}
+.set{display:flex;align-items:center;justify-content:center;gap:22px}
+.set button{width:68px;height:68px;border-radius:50%;border:1px solid var(--line);background:var(--card);
+  color:var(--ink);font-size:2rem;cursor:pointer}
+.set button:active{background:var(--line)}
+.set button:disabled{opacity:.4}
+#target{font-size:2.6rem;font-weight:700;min-width:3.3ch;text-align:center}
+.label{text-align:center;color:var(--muted);font-size:.8rem;margin-bottom:8px}
+.light{margin-top:14px}
+.lh{display:flex;justify-content:space-between;margin-bottom:6px;font-size:.95rem}
+.lh b{font-weight:600}
+.trk{position:relative;height:44px;border-radius:22px;overflow:hidden;border:1px solid var(--line)}
+.segs{position:absolute;inset:0;display:flex}
+.segs i{flex:1}
+.trk input{position:absolute;inset:0;width:100%;height:100%;margin:0;background:transparent;
+  -webkit-appearance:none;appearance:none;cursor:pointer;touch-action:pan-y}
+.trk input:disabled{opacity:.5;cursor:default}
+.trk input::-webkit-slider-runnable-track{background:transparent;height:44px}
+.trk input::-webkit-slider-thumb{-webkit-appearance:none;width:36px;height:36px;border-radius:50%;
+  background:var(--thumb,#888);border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.45);margin-top:4px}
+.trk input::-moz-range-track{background:transparent;height:44px}
+.trk input::-moz-range-thumb{width:30px;height:30px;border-radius:50%;background:var(--thumb,#888);
+  border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.45)}
+#msg{min-height:1.3em;text-align:center;font-size:.85rem;color:var(--bad)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Hot Tub <span id="conn"><i></i><span id="connTxt">Connecting…</span></span></h1>
+
+  <div class="card">
+    <button id="power" disabled>Spa</button>
+    <div class="state" id="state">&nbsp;</div>
+  </div>
+
+  <div class="card">
+    <div class="temps">
+      <div><span id="curLabel">Water</span><b id="cur">--</b></div>
+    </div>
+    <div class="label">Set temperature</div>
+    <div class="set">
+      <button id="down" aria-label="Lower" disabled>&minus;</button>
+      <div id="target">--</div>
+      <button id="up" aria-label="Raise" disabled>+</button>
+    </div>
+  </div>
+
+  <div class="card" id="lights"><div class="label">Lights &middot; slide from Off to a color</div></div>
+
+  <div id="msg"></div>
+</main>
+
+<script>
+// ---- Configuration -------------------------------------------------------
+const HOST   = "192.168.1.46";   // controller address on the home network
+const PORT   = 6680;             // plain (non-TLS) WebSocket
+const SPA_CIRCUIT = "C0001";     // "Spa" circuit
+const SPA_BODY    = "B1202";     // Spa body (holds temperatures)
+const MIN_SET = 80, MAX_SET = 104; // limits for the set-temperature buttons (deg F)
+// Lights. "code" is the value the controller uses in the USE field; null = off.
+// Edit this list to add, remove or reorder the presets on the slider.
+const LIGHTS = [
+  {id:"C0005", label:"Pool light"},
+  {id:"C0008", label:"Spa light"}
+];
+const SHOW = "linear-gradient(90deg,#e5383b,#f5a623,#2fb351,#2b6fe0,#c63fc0)";
+const COLORS = [
+  {code:null,      name:"Off",       css:"#3a4650"},
+  {code:"WHITER",  name:"White",     css:"#f4f4f4"},
+  {code:"REDR",    name:"Red",       css:"#e5383b"},
+  {code:"GREENR",  name:"Green",     css:"#2fb351"},
+  {code:"BLUER",   name:"Blue",      css:"#2b6fe0"},
+  {code:"MAGNTAR", name:"Magenta",   css:"#c63fc0"},
+  {code:"PARTY",   name:"Party",     css:SHOW},
+  {code:"CARIB",   name:"Caribbean", css:"linear-gradient(90deg,#10b8c9,#2b6fe0,#2fb351)"}
+];
+// --------------------------------------------------------------------------
+
+const $ = id => document.getElementById(id);
+let ws = null, seq = 0, retry = null, poll = null;
+const sent = {};   // recent requests by messageID, used to explain controller errors
+let spaOn = null, curTemp = null, lastTemp = null, target = null, htmode = "0";
+let sendTimer = null, pendingTarget = false;
+
+function setMsg(t){ $("msg").textContent = t || ""; }
+
+function connect(){
+  clearTimeout(retry);
+  ws = new WebSocket(`ws://${HOST}:${PORT}`);
+  ws.onopen = () => {
+    setConn(true);
+    setMsg("");
+    fetchAll();
+    subscribe();
+    clearInterval(poll);
+    poll = setInterval(fetchAll, 15000);   // fallback refresh
+  };
+  ws.onmessage = e => { try { handle(JSON.parse(e.data)); } catch(_){} };
+  ws.onclose = () => { setConn(false); clearInterval(poll); retry = setTimeout(connect, 3000); };
+  ws.onerror = () => {};
+}
+
+function setConn(ok){
+  $("conn").classList.toggle("ok", ok);
+  $("connTxt").textContent = ok ? "Connected" : "Reconnecting…";
+  if(!ok){ ["power","up","down"].forEach(i => $(i).disabled = true); }
+}
+
+function send(obj){
+  if(!ws || ws.readyState !== 1){ setMsg("Not connected to the controller."); return false; }
+  obj.messageID = "h" + (++seq);
+  const text = JSON.stringify(obj);
+  sent[obj.messageID] = text;
+  delete sent["h" + (seq - 30)];   // keep only recent requests
+  ws.send(text);
+  return true;
+}
+
+function watchList(){
+  return [
+    {objnam:SPA_CIRCUIT, keys:["STATUS"]},
+    {objnam:SPA_BODY, keys:["STATUS","TEMP","LSTTMP","LOTMP","HTMODE"]},
+    ...LIGHTS.map(L => ({objnam:L.id, keys:["STATUS","USE"]}))
+  ];
+}
+
+function fetchAll(){
+  send({command:"GetParamList", condition:"", objectList:watchList()});
+}
+
+// Ask the controller to push changes for these values as they happen.
+function subscribe(){
+  send({command:"RequestParamList", objectList:watchList()});
+}
+
+function handle(m){
+  if(m.response && m.response !== "200"){
+    setMsg("Controller error " + m.response + " for: " + (sent[m.messageID] || m.messageID));
+    return;
+  }
+  (m.objectList || []).forEach(o => {
+    const p = o.params || {};
+    const ls = LS[o.objnam];
+    if(ls){ if("STATUS" in p) ls.status = p.STATUS; if("USE" in p) ls.use = p.USE; }
+    if(o.objnam === SPA_CIRCUIT && "STATUS" in p){ spaOn = (p.STATUS === "ON"); }
+    if(o.objnam === SPA_BODY){
+      if("TEMP"   in p) curTemp  = num(p.TEMP);
+      if("LSTTMP" in p) lastTemp = num(p.LSTTMP);
+      if("HTMODE" in p) htmode   = p.HTMODE;
+      if("LOTMP"  in p && !pendingTarget) target = num(p.LOTMP);
+    }
+  });
+  render();
+  renderLights();
+}
+
+const num =v => { const n = parseInt(v, 10); return isNaN(n) ? null : n; };
+
+function render(){
+  const ready = spaOn !== null;
+  $("power").disabled = !ready;
+  $("power").classList.toggle("on", !!spaOn);
+  $("power").textContent = spaOn ? "Spa is ON – tap to turn off" : "Spa is OFF – tap to turn on";
+
+  if(spaOn){
+    $("curLabel").textContent = "Water";
+    $("cur").textContent = curTemp != null ? curTemp + "°" : "--";
+    $("state").textContent = (htmode && htmode !== "0") ? "Heating" : "On";
+  } else {
+    $("curLabel").textContent = "Last water reading";
+    $("cur").textContent = lastTemp != null ? lastTemp + "°" : "--";
+    $("state").textContent = "Off";
+  }
+
+  $("target").textContent = target != null ? target + "°" : "--";
+  $("up").disabled   = target == null || target >= MAX_SET;
+  $("down").disabled = target == null || target <= MIN_SET;
+}
+
+$("power").onclick = () => {
+  if(spaOn === null) return;
+  const want = spaOn ? "OFF" : "ON";
+  if(send({command:"SetParamList", objectList:[{objnam:SPA_CIRCUIT, params:{STATUS:want}}]})){
+    $("state").textContent = want === "ON" ? "Turning on…" : "Turning off…";
+    setTimeout(fetchAll, 1500);   // confirm the change took effect
+  }
+};
+
+function nudge(d){
+  if(target == null) return;
+  target = Math.min(MAX_SET, Math.max(MIN_SET, target + d));
+  pendingTarget = true;
+  render();
+  clearTimeout(sendTimer);
+  sendTimer = setTimeout(() => {
+    send({command:"SetParamList", objectList:[{objnam:SPA_BODY, params:{LOTMP:String(target)}}]});
+    setTimeout(() => { pendingTarget = false; fetchAll(); }, 1500);
+  }, 700);   // wait until taps stop so we send only the final value
+}
+$("up").onclick   = () => nudge(+1);
+$("down").onclick = () => nudge(-1);
+
+// ---- Lights --------------------------------------------------------------
+const LS = {};   // per-light state, keyed by circuit id
+
+function buildLights(){
+  LIGHTS.forEach(L => {
+    const st = LS[L.id] = {status:null, use:null, busy:false, timer:null};
+    const row = document.createElement("div");
+    row.className = "light";
+    row.innerHTML =
+      `<div class="lh"><span>${L.label}</span><b>--</b></div>` +
+      `<div class="trk"><div class="segs">${COLORS.map(c => `<i style="background:${c.css}"></i>`).join("")}</div>` +
+      `<input type="range" min="0" max="${COLORS.length-1}" step="1" value="0" disabled aria-label="${L.label}"></div>`;
+    $("lights").appendChild(row);
+    st.input = row.querySelector("input");
+    st.name  = row.querySelector("b");
+    paint(st, 0);
+    st.input.addEventListener("input", () => {
+      const i = +st.input.value;
+      st.busy = true;
+      paint(st, i);
+      clearTimeout(st.timer);
+      st.timer = setTimeout(() => commitLight(L, st, i), 300);  // send once the slider pauses
+    });
+  });
+}
+
+function paint(st, i, label){
+  st.input.value = i;
+  st.input.style.setProperty("--thumb", COLORS[i].css);
+  st.name.textContent = label || COLORS[i].name;
+}
+
+function commitLight(L, st, i){
+  const c = COLORS[i];
+  const params = c.code ? {ACT:c.code, STATUS:"ON"} : {STATUS:"OFF"};
+  send({command:"SetParamList", objectList:[{objnam:L.id, params}]});
+  // Re-read afterwards so the slider always shows what the controller actually did.
+  setTimeout(() => { st.busy = false; fetchAll(); }, 1200);
+}
+
+function renderLights(){
+  LIGHTS.forEach(L => {
+    const st = LS[L.id];
+    st.input.disabled = (st.status === null);
+    if(st.busy || st.status === null) return;
+    if(st.status !== "ON"){ paint(st, 0); return; }
+    const i = COLORS.findIndex(c => c.code === st.use);
+    if(i > 0) paint(st, i);
+    else paint(st, +st.input.value || 0, st.use || "On");   // a color not in the list
+  });
+}
+
+buildLights();
+connect();
+</script>
+</body>
+</html>
