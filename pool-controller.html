@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hot Tub</title>
+<title>BG Pool</title>
 <style>
 :root{
   --bg:#f3f5f7;--card:#fff;--ink:#14202b;--muted:#6b7a88;--line:#dbe2e8;
@@ -57,10 +57,10 @@ h1{font-size:1.1rem;margin:4px 2px;font-weight:600;display:flex;justify-content:
 </head>
 <body>
 <main>
-  <h1>Hot Tub <span id="conn"><i></i><span id="connTxt">Connecting…</span></span></h1>
+  <h1>BG Pool <span id="conn"><i></i><span id="connTxt">Connecting…</span></span></h1>
 
   <div class="card">
-    <button id="power" disabled>Spa</button>
+    <button id="power" disabled>Hot Tub</button>
     <div class="state" id="state">&nbsp;</div>
   </div>
 
@@ -83,7 +83,8 @@ h1{font-size:1.1rem;margin:4px 2px;font-weight:600;display:flex;justify-content:
 
 <script>
 // ---- Configuration -------------------------------------------------------
-const HOST   = "192.168.1.46";   // controller address on the home network
+// Controller addresses, tried in turn: its Bonjour name first, then its fixed IP address.
+const HOSTS  = ["pentair.local", "192.168.1.46"];
 const PORT   = 6680;             // plain (non-TLS) WebSocket
 const SPA_CIRCUIT = "C0001";     // "Spa" circuit
 const SPA_BODY    = "B1202";     // Spa body (holds temperatures)
@@ -92,7 +93,7 @@ const MIN_SET = 80, MAX_SET = 104; // limits for the set-temperature buttons (de
 // Edit this list to add, remove or reorder the presets on the slider.
 const LIGHTS = [
   {id:"C0005", label:"Pool light"},
-  {id:"C0008", label:"Spa light"}
+  {id:"C0008", label:"Hot Tub light"}
 ];
 const SHOW = "linear-gradient(90deg,#e5383b,#f5a623,#2fb351,#2b6fe0,#c63fc0)";
 const COLORS = [
@@ -108,7 +109,7 @@ const COLORS = [
 // --------------------------------------------------------------------------
 
 const $ = id => document.getElementById(id);
-let ws = null, seq = 0, retry = null, poll = null;
+let ws = null, seq = 0, retry = null, poll = null, hostIdx = 0;
 const sent = {};   // recent requests by messageID, used to explain controller errors
 let spaOn = null, curTemp = null, lastTemp = null, target = null, htmode = "0";
 let sendTimer = null, pendingTarget = false;
@@ -117,8 +118,13 @@ function setMsg(t){ $("msg").textContent = t || ""; }
 
 function connect(){
   clearTimeout(retry);
-  ws = new WebSocket(`ws://${HOST}:${PORT}`);
+  let opened = false;
+  ws = new WebSocket(`ws://${HOSTS[hostIdx]}:${PORT}`);
+  // If this address neither connects nor fails within a few seconds, give up on it.
+  const giveUp = setTimeout(() => { if(!opened){ try { ws.close(); } catch(_){} } }, 4000);
   ws.onopen = () => {
+    opened = true;
+    clearTimeout(giveUp);
     setConn(true);
     setMsg("");
     fetchAll();
@@ -127,7 +133,13 @@ function connect(){
     poll = setInterval(fetchAll, 15000);   // fallback refresh
   };
   ws.onmessage = e => { try { handle(JSON.parse(e.data)); } catch(_){} };
-  ws.onclose = () => { setConn(false); clearInterval(poll); retry = setTimeout(connect, 3000); };
+  ws.onclose = () => {
+    clearTimeout(giveUp);
+    setConn(false);
+    clearInterval(poll);
+    if(!opened) hostIdx = (hostIdx + 1) % HOSTS.length;   // this address failed: try the other next
+    retry = setTimeout(connect, opened ? 3000 : 1000);
+  };
   ws.onerror = () => {};
 }
 
@@ -191,7 +203,7 @@ function render(){
   const ready = spaOn !== null;
   $("power").disabled = !ready;
   $("power").classList.toggle("on", !!spaOn);
-  $("power").textContent = spaOn ? "Spa is ON – tap to turn off" : "Spa is OFF – tap to turn on";
+  $("power").textContent = spaOn ? "Hot Tub is ON – tap to turn off" : "Hot Tub is OFF – tap to turn on";
 
   if(spaOn){
     $("curLabel").textContent = "Water";
